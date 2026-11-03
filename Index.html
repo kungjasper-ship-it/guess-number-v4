@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>幾 A 幾 B｜版本四</title>
+<style>
+  :root {
+    --bg: #f3f5f2; --surface: #ffffff; --ink: #1c2420; --muted: #5b6761; --line: #cfd8d2;
+    --accent: #1f6f5b; --accent-ink: #ffffff; --a-color: #1f6f5b; --b-color: #b0661b; --err: #b3261e;
+    --warn-bg: #fbeedd; --warn-ink: #7a4310; --ok-bg: #dcefe8; --ok-ink: #14503f;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141a17; --surface: #1d2622; --ink: #e8efea; --muted: #9aa9a1; --line: #33423b;
+      --accent: #5cc4a6; --accent-ink: #0d1612; --a-color: #5cc4a6; --b-color: #e3a15a; --err: #ff8a80;
+      --warn-bg: #3a2c1a; --warn-ink: #f0c48f; --ok-bg: #1b3a30; --ok-ink: #9fe0c8;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.6;
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 28px 18px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 1.05rem; margin: 0; }
+  .rule { color: var(--muted); margin: 0 0 22px; font-size: .95rem; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sub { color: var(--muted); font-size: .9rem; }
+  .err { color: var(--err); font-size: .95rem; min-height: 1.6em; margin: 10px 0 0; }
+  a { color: var(--accent); }
+
+  button { font: inherit; font-weight: 600; cursor: pointer; padding: 9px 16px; border-radius: 8px;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+  button.ghost { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  input:focus-visible, button:focus-visible, .switch input:focus-visible + .track { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .row { display: flex; gap: 10px; }
+  input[type="text"] { flex: 1; min-width: 0; font: inherit; font-size: 1.8rem; letter-spacing: .5em; text-align: center;
+    padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  input[type="text"]:disabled { opacity: .5; }
+
+  #status { font-size: .9rem; color: var(--muted); }
+  #status.ok { color: var(--a-color); }
+  #status.bad { color: var(--err); }
+
+  .consent ul { margin: 10px 0 14px; padding-left: 1.2em; }
+  .consent li { margin: 4px 0; }
+  .who { padding: 8px 12px; border-radius: 8px; background: var(--bg); border: 1px dashed var(--line); margin: 10px 0; }
+
+  #gameList { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  #gameList button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; text-align: left; }
+  #gameList button[aria-current="true"] { border: 2px solid var(--accent); padding: 8px 15px; }
+  .badge { font-size: .85rem; padding: 1px 10px; border-radius: 999px; white-space: nowrap; font-weight: 600; }
+  .badge.finished { background: var(--ok-bg); color: var(--ok-ink); }
+  .badge.unfinished { background: var(--warn-bg); color: var(--warn-ink); }
+
+  .tablewrap { overflow-x: auto; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .9rem; }
+  td.g { letter-spacing: .25em; font-size: 1.1rem; }
+  td .a { color: var(--a-color); font-weight: 700; }
+  td .b { color: var(--b-color); font-weight: 700; }
+  .empty { color: var(--muted); margin: 12px 0 0; }
+
+  .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .track { width: 42px; height: 24px; border-radius: 12px; background: var(--line); position: relative; transition: background .15s; }
+  .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: transform .15s; }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+  @media (prefers-reduced-motion: reduce) { .track, .track::after { transition: none; } }
+  #answerBox { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--bg); border: 1px dashed var(--line); }
+  #answerBox strong { font-size: 1.4rem; letter-spacing: .4em; margin-left: 6px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>幾 A 幾 B</h1>
+  <p class="rule">答案是四個不重複的數字（0～9，可以 0 開頭）。A＝數字和位置都對，B＝數字對但位置不同。</p>
+
+  <!-- 讀取中／失敗 -->
+  <section class="panel" id="loadingPanel">
+    <p id="loadingMsg" style="margin:0">正在確認你的 Google 帳號與存檔…</p>
+    <button id="retryBtn" type="button" class="ghost" style="margin-top:10px" hidden>重試</button>
+  </section>
+
+  <!-- 授權用途說明 + 確認建立 -->
+  <section class="panel consent" id="consentPanel" hidden>
+    <h2>建立你的個人存檔</h2>
+    <p class="who">目前帳號：<strong id="consentEmail"></strong></p>
+    <p id="lostNote" class="err" style="min-height:0;margin:0 0 8px" hidden>找不到你原本的存檔試算表（可能被刪除或暫時讀不到）。確定要重新開始的話，可以再建立一份新的。</p>
+    <p style="margin:0">這個遊戲需要一個地方保存你的紀錄：</p>
+    <ul>
+      <li>按下確認後，會用<strong>你自己的 Google 帳號</strong>，在<strong>你自己的雲端硬碟</strong>建立一份名為「幾A幾B個人存檔（版本四）」的試算表。</li>
+      <li>裡面只存遊戲紀錄：每局的答案、你的猜測、A/B 結果與時間。</li>
+      <li>這份試算表屬於你，其他帳號看不到你的遊戲；你也可以隨時自己刪除它。</li>
+      <li>之後用同一個帳號再開這個網站，會自動找回同一份，不會重複建立。</li>
+    </ul>
+    <button id="createBtn" type="button">確認並建立我的存檔</button>
+    <p id="createMsg" class="err" role="alert"></p>
+  </section>
+
+  <div id="gameArea" hidden>
+    <section class="panel">
+      <div class="head">
+        <span>目前帳號：<strong id="emailLabel"></strong></span>
+        <a id="sheetLink" href="#" target="_blank" rel="noopener">開啟我的試算表</a>
+      </div>
+      <p id="status" class="sub" role="status" style="margin:6px 0 0"></p>
+    </section>
+
+    <section class="panel">
+      <div class="head">
+        <h2>各局紀錄</h2>
+        <button id="newGameBtn" type="button">開新局</button>
+      </div>
+      <ul id="gameList"></ul>
+      <p id="noGames" class="empty" hidden>你的存檔裡還沒有任何一局，按「開新局」開始。</p>
+    </section>
+
+    <section class="panel" id="detailPanel" aria-labelledby="detailTitle">
+      <div class="head">
+        <h2 id="detailTitle"></h2>
+        <span id="detailBadge" class="badge"></span>
+      </div>
+      <p id="detailSub" class="sub" style="margin:2px 0 14px"></p>
+
+      <div id="inputArea">
+        <div class="row">
+          <input id="guessInput" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0123" aria-label="輸入四位數字">
+          <button id="submitBtn" type="button">送出</button>
+        </div>
+        <p id="msg" class="err" role="alert"></p>
+      </div>
+      <p id="viewOnly" class="sub" hidden>這局已完成，只能查看。想再玩請按「開新局」。</p>
+
+      <div class="tablewrap" id="tableWrap">
+        <table>
+          <thead><tr><th>次序</th><th>猜測</th><th>結果</th><th>時間</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+      <p id="emptyNote" class="empty">這一局還沒有有效猜測。</p>
+    </section>
+
+    <section class="panel" id="debugPanel">
+      <label class="switch">
+        <input id="debugToggle" type="checkbox">
+        <span class="track"></span>
+        <span>除錯模式（顯示這一局存在你的存檔裡的答案）</span>
+      </label>
+      <div id="answerBox" hidden>這一局的答案：<strong id="answerText"></strong></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  var STATUS_TEXT = { finished: "已完成", unfinished: "未完成" };
+  var $ = function (id) { return document.getElementById(id); };
+
+  var games = [];       // 後端回傳的各局（只屬於目前帳號）
+  var viewId = null;    // 正在查看的局
+  var busy = false;     // 等待雲端回應時，鎖住操作
+  var dbg = null;       // 除錯取得的答案：{ id, answer }
+  var inGame = false;
+
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      r[fn].apply(r, args);
+    });
+  }
+  function errText(e) { return (e && e.message) ? e.message : String(e); }
+  function getGame(id) {
+    for (var i = 0; i < games.length; i++) if (games[i].id === id) return games[i];
+    return null;
+  }
+  function fmtTime(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? iso : d.toLocaleTimeString("zh-TW", { hour12: false });
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function setStatus(text, kind) {
+    var s = $("status");
+    s.textContent = text;
+    s.className = "sub" + (kind ? " " + kind : "");
+  }
+  function setBusy(b, text) {
+    busy = b;
+    if (text) setStatus(text);
+    updateControls();
+  }
+
+  // ---------- 畫面 ----------
+  function updateControls() {
+    var g = getGame(viewId);
+    var canPlay = !!g && g.status !== "finished";
+    $("guessInput").disabled = busy || !canPlay;
+    $("submitBtn").disabled = busy || !canPlay;
+    $("newGameBtn").disabled = busy;
+    $("createBtn").disabled = busy;
+    $("debugToggle").disabled = busy || !g;
+    var btns = document.querySelectorAll("#gameList button");
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = busy;
+  }
+
+  function renderList() {
+    var ul = $("gameList");
+    ul.innerHTML = "";
+    $("noGames").hidden = games.length > 0;
+    for (var i = games.length - 1; i >= 0; i--) {
+      (function (g) {
+        var li = document.createElement("li");
+        var btn = document.createElement("button");
+        btn.type = "button";
+        if (g.id === viewId) btn.setAttribute("aria-current", "true");
+        btn.appendChild(el("span", "", "第 " + g.id + " 局．猜 " + g.guesses.length + " 次"));
+        btn.appendChild(el("span", "badge " + g.status, STATUS_TEXT[g.status] || g.status));
+        btn.addEventListener("click", function () { selectGame(g.id); });
+        li.appendChild(btn);
+        ul.appendChild(li);
+      })(games[i]);
+    }
+  }
+
+  function renderDetail() {
+    var g = getGame(viewId);
+    $("detailPanel").hidden = !g;
+    $("debugPanel").hidden = !g;
+    if (!g) return;
+    $("detailTitle").textContent = "第 " + g.id + " 局";
+    var badge = $("detailBadge");
+    badge.className = "badge " + g.status;
+    badge.textContent = STATUS_TEXT[g.status] || g.status;
+    $("detailSub").textContent = "有效猜測 " + g.guesses.length + " 次";
+
+    var finished = g.status === "finished";
+    $("inputArea").hidden = finished;
+    $("viewOnly").hidden = !finished;
+
+    var body = $("historyBody");
+    body.innerHTML = "";
+    g.guesses.forEach(function (x) {
+      var tr = document.createElement("tr");
+      tr.appendChild(el("td", "", String(x.n)));
+      tr.appendChild(el("td", "g", x.guess));
+      var res = document.createElement("td");
+      res.appendChild(el("span", "a", x.a + "A"));
+      res.appendChild(el("span", "b", x.b + "B"));
+      tr.appendChild(res);
+      tr.appendChild(el("td", "", fmtTime(x.time)));
+      body.appendChild(tr);
+    });
+    $("tableWrap").hidden = g.guesses.length === 0;
+    $("emptyNote").hidden = g.guesses.length !== 0;
+  }
+
+  function renderDebug() {
+    // 只控制顯示：已完成的局直接顯示解答；未完成的局只在除錯開啟、且已取回答案時顯示
+    var g = getGame(viewId);
+    var answer = null;
+    if (g) {
+      if (g.status === "finished" && g.answer) answer = g.answer;
+      else if ($("debugToggle").checked && dbg && dbg.id === g.id) answer = dbg.answer;
+    }
+    $("answerBox").hidden = !answer;
+    $("answerText").textContent = answer || "";
+  }
+
+  function render() {
+    renderList();
+    renderDetail();
+    renderDebug();
+    updateControls();
+  }
+
+  function selectGame(id) {
+    viewId = id;
+    $("debugToggle").checked = false;   // 換局時預設關閉除錯
+    dbg = null;
+    $("msg").textContent = "";
+    $("guessInput").value = "";
+    render();
+    var g = getGame(id);
+    if (g && g.status !== "finished") $("guessInput").focus();
+  }
+
+  function pickStartView() {
+    var pick = null;
+    games.forEach(function (g) { if (g.status !== "finished") pick = g.id; });
+    if (pick === null && games.length) pick = games[games.length - 1].id;
+    return pick;
+  }
+
+  // ---------- 流程 ----------
+  function showPanel(which) {
+    $("loadingPanel").hidden = which !== "loading";
+    $("consentPanel").hidden = which !== "consent";
+    $("gameArea").hidden = which !== "game";
+  }
+
+  function handleInit(res) {
+    if (!res.hasFile) {
+      $("consentEmail").textContent = res.email;
+      $("lostNote").hidden = !res.lost;
+      $("createMsg").textContent = "";
+      showPanel("consent");
+      return;
+    }
+    inGame = true;
+    games = res.games || [];
+    $("emailLabel").textContent = res.email;
+    $("sheetLink").href = res.url;
+    showPanel("game");
+    viewId = pickStartView();
+    $("debugToggle").checked = false;
+    dbg = null;
+    busy = false;
+    setStatus(games.length ? "已讀取你的 " + games.length + " 局紀錄。" : "你的存檔是空的，按「開新局」開始。", "ok");
+    render();
+  }
+
+  function init() {
+    showPanel("loading");
+    $("loadingMsg").textContent = "正在確認你的 Google 帳號與存檔…";
+    $("retryBtn").hidden = true;
+    call("apiInit").then(handleInit).catch(function (e) {
+      $("loadingMsg").textContent = "讀取失敗：" + errText(e);
+      $("retryBtn").hidden = false;
+    });
+  }
+
+  function createFile() {
+    if (busy) return;
+    setBusy(true);
+    $("createMsg").textContent = "建立中，請稍候…";
+    call("apiCreateFile").then(function (res) {
+      busy = false;
+      handleInit(res);
+    }).catch(function (e) {
+      $("createMsg").textContent = "建立失敗：" + errText(e);
+      setBusy(false);
+    });
+  }
+
+  function newGame() {
+    setBusy(true, "建立新局中…");
+    call("apiNewGame").then(function (res) {
+      games = res.games;
+      setStatus("已建立第 " + res.newId + " 局並存到你的試算表。", "ok");
+      busy = false;
+      selectGame(res.newId);
+    }).catch(function (e) {
+      setStatus("建立失敗：" + errText(e), "bad");
+      setBusy(false);
+    });
+  }
+
+  function submit() {
+    var g = getGame(viewId);
+    if (busy || !g || g.status === "finished") return;
+    var value = $("guessInput").value.trim();
+    setBusy(true, "儲存中…");
+    call("apiGuess", g.id, value).then(function (res) {
+      if (!res.ok) {
+        $("msg").textContent = res.msg;
+        setStatus("沒有儲存（無效輸入）。");
+        setBusy(false);
+        $("guessInput").focus();
+        return;
+      }
+      games = res.games;
+      $("msg").textContent = "";
+      $("guessInput").value = "";
+      setStatus("已儲存 ✓", "ok");
+      busy = false;
+      render();
+      var now = getGame(viewId);
+      if (now && now.status !== "finished") $("guessInput").focus();
+    }).catch(function (e) {
+      setStatus("儲存失敗，這次猜測可能沒有存入：" + errText(e), "bad");
+      setBusy(false);
+    });
+  }
+
+  function onDebugChange() {
+    var g = getGame(viewId);
+    if (!g) return;
+    if (!$("debugToggle").checked || g.status === "finished") { renderDebug(); return; }
+    var id = g.id;
+    setBusy(true, "從你的存檔讀取答案…");
+    call("apiAnswer", id).then(function (answer) {
+      dbg = { id: id, answer: answer };
+      setStatus("已從你的存檔讀取答案。", "ok");
+      busy = false;
+      render();
+    }).catch(function (e) {
+      $("debugToggle").checked = false;
+      setStatus("讀取答案失敗：" + errText(e), "bad");
+      setBusy(false);
+    });
+  }
+
+  $("retryBtn").addEventListener("click", init);
+  $("createBtn").addEventListener("click", createFile);
+  $("newGameBtn").addEventListener("click", newGame);
+  $("submitBtn").addEventListener("click", submit);
+  $("guessInput").addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+  $("debugToggle").addEventListener("change", onDebugChange);
+  init();
+})();
+</script>
+</body>
+</html>
